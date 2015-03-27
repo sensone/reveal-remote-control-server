@@ -1,0 +1,10 @@
+{
+  "name": "reveal-remote-controll-server",
+  "version": "0.0.1",
+  "description": "reveal-remote-controll-server",
+  "dependencies": {
+    "express": "^4.12.3",
+    "socket.io": "^1.3.5"
+  },
+  "devDependencies": {}
+}
