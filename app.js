@@ -10,4 +10,9 @@ server.listen(port, function () {
 
 io.on('connection', function (socket) {
   console.log('connection');
+
+  socket.on('next', function () {
+    console.log('next')
+    socket.broadcast.emit('next', {test: 'test'});
+  });
 });
