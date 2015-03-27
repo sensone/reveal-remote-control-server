@@ -33,24 +33,9 @@ io.on('connection', function (socket) {
   });
 
   // listening presentation
-  socket.on('presentation:right', function (data) {
-    console.log('presentation:right', data);
-    socket.broadcast.emit('remote:right', data);
-  });
-
-  socket.on('presentation:left', function (data) {
-    console.log('presentation:left', data);
-    socket.broadcast.emit('remote:left', data);
-  });
-
-  socket.on('presentation:up', function (data) {
-    console.log('presentation:up', data);
-    socket.broadcast.emit('remote:up', data);
-  });
-
-  socket.on('presentation:down', function (data) {
-    console.log('presentation:down', data);
-    socket.broadcast.emit('remote:down', data);
+  socket.on('presentation:slidechanged', function (data) {
+    console.log('presentation:slidechanged', data);
+    socket.broadcast.emit('remote:slidechanged', data);
   });
 
 });
