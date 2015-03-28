@@ -2,14 +2,23 @@ var express = require('express')
     , app = express()
     , server = require('http').createServer(app)
     , io = require('socket.io')(server)
-    , port =  3005;
+    , os = require( 'os' )
+    , id
+    , ip = os.networkInterfaces().en0[1].address
+    , port =  3005
+    , portClient = 8000;
 
 server.listen(port, function () {
   console.log('Server listening at port %d', port);
 });
 
-io.on('connection', function (socket) {
+io.on('connection', function (socket, data) {
   console.log('connection');
+
+  if (!id) {
+    id = 123456;
+    socket.emit('presentation:createID', {link: 'http://' + ip + ':' + portClient});
+  }
 
   // listening remote controll
   socket.on('remote:right', function (data) {
@@ -30,6 +39,11 @@ io.on('connection', function (socket) {
   socket.on('remote:down', function (data) {
     console.log('remote:down', data);
     socket.broadcast.emit('presentation:down', data);
+  });
+
+  socket.on('remote:connect', function (data) {
+    console.log('remote:connect', data);
+    socket.broadcast.emit('presentation:remoteConnected', data);
   });
 
   // listening presentation
