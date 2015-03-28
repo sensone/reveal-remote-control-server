@@ -3,7 +3,8 @@ var express = require('express')
     , server = require('http').createServer(app)
     , io = require('socket.io')(server)
     , os = require( 'os' )
-    , id
+    , mainPresentationConnect = false
+    , state
     , ip = os.networkInterfaces().en0[1].address
     , port =  3005
     , portClient = 8000;
@@ -15,9 +16,11 @@ server.listen(port, function () {
 io.on('connection', function (socket, data) {
   console.log('connection');
 
-  if (!id) {
-    id = 123456;
+  if (!mainPresentationConnect) {
+    mainPresentationConnect = true;
     socket.emit('presentation:createID', {link: 'http://' + ip + ':' + portClient});
+  } else {
+    socket.emit('presentation:setState', state);
   }
 
   // listening remote controll
@@ -50,6 +53,13 @@ io.on('connection', function (socket, data) {
   socket.on('presentation:slidechanged', function (data) {
     console.log('presentation:slidechanged', data);
     socket.broadcast.emit('remote:slidechanged', data);
+    state = data;
   });
+
+  socket.on('presentation:start', function(data) {
+    console.log('presentation:start', data);
+
+    state = data;
+  })
 
 });
