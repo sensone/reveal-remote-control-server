@@ -49,6 +49,16 @@ io.on('connection', function (socket, data) {
     socket.broadcast.emit('presentation:remoteConnected', data);
   });
 
+  socket.on('remote:pointer', function (data) {
+    console.log('remote:pointer', data);
+    socket.broadcast.emit('presentation:pointer', data);
+  });
+
+  socket.on('remote:zoom', function (data) {
+    console.log('remote:zoom', data);
+    socket.broadcast.emit('presentation:zoom', data);
+  });
+
   // listening presentation
   socket.on('presentation:slidechanged', function (data) {
     console.log('presentation:slidechanged', data);
