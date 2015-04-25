@@ -1,9 +1,9 @@
 var express = require('express')
-    , app = express()
-    , server = require('http').createServer(app)
-    , io = require('socket.io')(server)
-    , sessions = {}
-    , port =  3005;
+  , app = express()
+  , server = require('http').createServer(app)
+  , io = require('socket.io')(server)
+  , sessions = {}
+  , port =  3005;
 
 function generateToken() {
   var date = new Date().getTime()
