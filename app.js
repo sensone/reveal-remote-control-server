@@ -2,74 +2,127 @@ var express = require('express')
     , app = express()
     , server = require('http').createServer(app)
     , io = require('socket.io')(server)
-    , os = require( 'os' )
-    , mainPresentationConnect = false
-    , state
-    , ip = os.networkInterfaces().en0[1].address
-    , port =  3005
-    , portClient = 8000;
+    , sessions = {}
+    , port =  3005;
+
+function generateToken() {
+  var date = new Date().getTime()
+    , token = date + '_' + Math.random().toString().replace('.', '');
+
+  return token;
+}
+
+function verifySession(data) {
+  var session = sessions[data.presentation_id];
+
+  if (session && session.token === data.token) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+function setState(data) {
+  if (verifySession(data)) {
+    var session = sessions[data.presentation_id];
+
+    session.state = data.state;
+  }
+}
 
 server.listen(port, function () {
   console.log('Server listening at port %d', port);
 });
 
 io.on('connection', function (socket, data) {
-  console.log('connection');
 
-  if (!mainPresentationConnect) {
-    mainPresentationConnect = true;
-    socket.emit('presentation:createID', {link: 'http://' + ip + ':' + portClient});
-  } else {
-    socket.emit('presentation:setState', state);
-  }
+  socket.on('presentation:init', function(data) {
+    var presentation_id = data.presentation_id;
 
-  // listening remote controll
+    if (!sessions[presentation_id]) {
+      var session = {};
+
+      session.token = generateToken();
+      session.state = data.state;
+
+      sessions[presentation_id] = session;
+
+      socket.emit('server:init', {token: session.token});
+      console.log('server:init', session)
+    } else if (data) {
+      console.log(666, sessions)
+    }
+  });
+
+  socket.on('disconnect', function() {
+    console.log('disconnect');
+  });
+
   socket.on('remote:right', function (data) {
     console.log('remote:right', data);
-    socket.broadcast.emit('presentation:right', data);
+
+    if (verifySession(data)) {
+      socket.broadcast.emit('remote:right', data);
+    }
   });
 
   socket.on('remote:left', function (data) {
     console.log('remote:left', data);
-    socket.broadcast.emit('presentation:left', data);
+
+    if (verifySession(data)) {
+      socket.broadcast.emit('remote:left', data);
+    }
   });
 
   socket.on('remote:up', function (data) {
     console.log('remote:up', data);
-    socket.broadcast.emit('presentation:up', data);
+
+    if (verifySession(data)) {
+      socket.broadcast.emit('remote:up', data);
+    }
   });
 
   socket.on('remote:down', function (data) {
     console.log('remote:down', data);
-    socket.broadcast.emit('presentation:down', data);
+
+    if (verifySession(data)) {
+      socket.broadcast.emit('remote:down', data);
+    }
   });
 
   socket.on('remote:connect', function (data) {
     console.log('remote:connect', data);
-    socket.broadcast.emit('presentation:remoteConnected', data);
+
+    if (verifySession(data)) {
+      socket.broadcast.emit('remote:remoteConnected', data);
+    }
   });
 
   socket.on('remote:pointer', function (data) {
     console.log('remote:pointer', data);
-    socket.broadcast.emit('presentation:pointer', data);
+
+    if (verifySession(data)) {
+      socket.broadcast.emit('remote:pointer', data);
+    }
   });
 
   socket.on('remote:zoom', function (data) {
     console.log('remote:zoom', data);
-    socket.broadcast.emit('presentation:zoom', data);
+
+    if (verifySession(data)) {
+      socket.broadcast.emit('remote:zoom', data);
+    }
   });
 
-  // listening presentation
   socket.on('presentation:slidechanged', function (data) {
     console.log('presentation:slidechanged', data);
-    socket.broadcast.emit('remote:slidechanged', data);
-    state = data;
+
+    if (verifySession(data)) {
+      socket.broadcast.emit('presentation:slidechanged', data);
+      setState(data);
+    } else {
+      console.log('don\'t verified session');
+    }
   });
-
-  socket.on('presentation:start', function(data) {
-    console.log('presentation:start', data);
-
-    state = data;
-  })
 
 });
