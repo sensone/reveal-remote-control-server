@@ -50,6 +50,9 @@ io.on('connection', function (socket, data) {
       socket.emit('server:init', {token: session.token});
       console.log('server:init', session)
     } else if (data) {
+      if (data.token) {
+        socket.emit('server:init', {token: data.token});
+      }
       console.log(666, sessions)
     }
   });
