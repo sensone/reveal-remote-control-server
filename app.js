@@ -31,12 +31,17 @@ function setState(data) {
   }
 }
 
+var checkRemoteClients;
+
+var reInitServer = function(data) {
+  socket.emit('server:init', data);
+};
+
 server.listen(port, function () {
   console.log('Server listening at port %d', port);
 });
 
 io.on('connection', function (socket, data) {
-
   socket.on('presentation:init', function(data) {
     var presentation_id = data.presentation_id;
 
@@ -52,7 +57,7 @@ io.on('connection', function (socket, data) {
       console.log('server:init')
     } else if (data) {
       if (data.token) {
-        socket.emit('server:init', {token: data.token});
+        socket.emit('server:init', {token: data.token, qr: true});
       }
       console.log(666, 'fuck')
     }
@@ -115,6 +120,22 @@ io.on('connection', function (socket, data) {
 
     if (verifySession(data)) {
       socket.broadcast.emit('remote:zoom', data);
+    }
+  });
+
+  socket.on('remote:checkClient', function (data) {
+    console.log('remote:checkClient', data);
+
+    if (verifySession(data)) {
+      socket.broadcast.emit('remote:remoteConnected', data);
+    }
+  });
+
+  socket.on('presentation:checkClient', function (data) {
+    console.log('presentation:checkClient', data);
+
+    if (verifySession(data)) {
+      socket.broadcast.emit('presentation:checkClient', data);
     }
   });
 
