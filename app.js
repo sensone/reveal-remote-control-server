@@ -13,8 +13,12 @@ function generateToken() {
 }
 
 function verifySession(data) {
-  var session = sessions[data.presentation_id];
+  console.log('data', data)
+  var presentation_id = data && data.presentation_id ? data.presentation_id : undefined
+    , session = presentation_id && sessions[presentation_id] ? sessions[presentation_id] : undefined;
 
+
+  console.log(session)
   if (session && session.token === data.token) {
     return true;
   } else {
