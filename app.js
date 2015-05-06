@@ -13,12 +13,9 @@ function generateToken() {
 }
 
 function verifySession(data) {
-  console.log('data', data)
   var presentation_id = data && data.presentation_id ? data.presentation_id : undefined
     , session = presentation_id && sessions[presentation_id] ? sessions[presentation_id] : undefined;
 
-
-  console.log(session)
   if (session && session.token === data.token) {
     return true;
   } else {
@@ -52,12 +49,12 @@ io.on('connection', function (socket, data) {
       sessions[presentation_id] = session;
 
       socket.emit('server:init', {token: session.token});
-      console.log('server:init', session)
+      console.log('server:init')
     } else if (data) {
       if (data.token) {
         socket.emit('server:init', {token: data.token});
       }
-      console.log(666, sessions)
+      console.log(666, 'fuck')
     }
   });
 
