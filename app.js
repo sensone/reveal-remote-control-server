@@ -104,6 +104,8 @@ io.on('connection', function (socket, data) {
 
     if (verifySession(data)) {
       socket.broadcast.emit('remote:remoteConnected', data);
+
+      sessions[data.presentation_id].presentation_id = data.presentation_id;
       socket.emit('presentation:slidechanged', sessions[data.presentation_id]);
     }
   });
