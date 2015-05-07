@@ -104,6 +104,7 @@ io.on('connection', function (socket, data) {
 
     if (verifySession(data)) {
       socket.broadcast.emit('remote:remoteConnected', data);
+      socket.emit('presentation:slidechanged', sessions[data.presentation_id]);
     }
   });
 
@@ -140,7 +141,7 @@ io.on('connection', function (socket, data) {
   });
 
   socket.on('presentation:slidechanged', function (data) {
-    console.log('presentation:slidechanged', data);
+    console.log('presentation:slidechanged');
 
     if (verifySession(data)) {
       socket.broadcast.emit('presentation:slidechanged', data);
