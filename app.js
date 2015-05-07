@@ -16,6 +16,10 @@ function verifySession(data) {
   var presentation_id = data && data.presentation_id ? data.presentation_id : undefined
     , session = presentation_id && sessions[presentation_id] ? sessions[presentation_id] : undefined;
 
+  if (session) {
+    return true;
+  }
+
   if (session && session.token === data.token) {
     return true;
   } else {
