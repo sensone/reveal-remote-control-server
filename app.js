@@ -1,8 +1,10 @@
 var express = require('express')
+  , _ = require('underscore')
   , app = express()
   , server = require('http').createServer(app)
   , io = require('socket.io')(server)
-  , sessions = {}
+  , sessions = []
+  , remote_events = ['right', 'down', 'left', 'up', 'pointer', 'zoom']
   , port = process.env.PORT || 3005;
 
 function generateToken() {
@@ -12,145 +14,83 @@ function generateToken() {
   return token;
 }
 
-function verifySession(data) {
-  var presentation_id = data && data.presentation_id ? data.presentation_id : undefined
-    , session = presentation_id && sessions[presentation_id] ? sessions[presentation_id] : undefined;
+function createSession(socket, presentation_id, params) {
+  var session;
 
-  if (session && session.token === data.token) {
-    return true;
-  } else {
-    return false;
-  }
+  console.log('create presentation');
+
+  session = {
+    presentation: socket,
+    presentation_id: presentation_id,
+    presentation_socket_id: undefined,
+    token: generateToken(),
+    remote: undefined,
+    remote_socket_id: undefined,
+    data: params
+  };
+
+  sessions.push(session);
+  session.presentation.emit('server:init', {token: session.token, qr: true});
 }
 
-function setState(data) {
-  if (verifySession(data)) {
-    var session = sessions[data.presentation_id];
-
-    session.state = data.state;
-  }
+function remoteEmit(event, data) {
+  console.log(event, data)
+  this.presentation.emit('remote:' + event, data);
 }
 
-var checkRemoteClients;
+// TODO: destroy events
+function listenEvents(socket, session) {
+  session.remote = socket;
 
-var reInitServer = function(data) {
-  socket.emit('server:init', data);
-};
+  session.presentation.emit('remote:remoteConnected');
+  session.remote.emit('presentation:slidechanged', session.data);
+
+  session.presentation.on('presentation:slidechanged', function (data) {
+    session.data = data;
+    console.log('presentation:slidechanged')
+    session.remote.emit('presentation:slidechanged', data);
+  });
+
+  _.each(remote_events, function(event) {
+    session.remote.on('remote:' + event, _.bind(remoteEmit, session, event));
+  });
+}
 
 server.listen(port, function () {
   console.log('Server listening at port %d', port);
 });
 
 io.on('connection', function (socket, data) {
-  socket.on('presentation:init', function(data) {
-    var presentation_id = data.presentation_id;
+  console.log('connect new client');
 
-    if (!sessions[presentation_id]) {
-      var session = {};
+  socket.on('presentation:init', function(params, presentation_id, token) {
+    var session;
+    console.log('presentation:init', presentation_id, token);
 
-      session.token = generateToken();
-      session.state = data.state;
+    if (!token) {
+      createSession(socket, presentation_id, params);
+    } else {
+      session = _.findWhere(sessions, {token: token});
 
-      sessions[presentation_id] = session;
-
-      socket.emit('server:init', {token: session.token});
-      console.log('server:init')
-    } else if (data) {
-      if (data.token) {
-        socket.emit('server:init', {token: data.token, qr: true});
+      if (session) {
+        session.presentation.emit('server:init', {token: session.token, qr: true});
+      } else {
+        createSession(socket, presentation_id, params);
       }
-      console.log(666, 'fuck')
+    }
+  });
+
+  socket.on('remote:connect', function (data) {
+    var session = _.findWhere(sessions, {token: data.token});
+
+    console.log('remote:connect', data.token);
+
+    if (session && session.presentation) {
+      listenEvents(socket, session);
     }
   });
 
   socket.on('disconnect', function() {
     console.log('disconnect');
   });
-
-  socket.on('remote:right', function (data) {
-    console.log('remote:right', data);
-
-    if (verifySession(data)) {
-      socket.broadcast.emit('remote:right', data);
-    }
-  });
-
-  socket.on('remote:left', function (data) {
-    console.log('remote:left', data);
-
-    if (verifySession(data)) {
-      socket.broadcast.emit('remote:left', data);
-    }
-  });
-
-  socket.on('remote:up', function (data) {
-    console.log('remote:up', data);
-
-    if (verifySession(data)) {
-      socket.broadcast.emit('remote:up', data);
-    }
-  });
-
-  socket.on('remote:down', function (data) {
-    console.log('remote:down', data);
-
-    if (verifySession(data)) {
-      socket.broadcast.emit('remote:down', data);
-    }
-  });
-
-  socket.on('remote:connect', function (data) {
-    console.log('remote:connect', data);
-
-    if (verifySession(data)) {
-      socket.broadcast.emit('remote:remoteConnected', data);
-
-      sessions[data.presentation_id].presentation_id = data.presentation_id;
-      socket.emit('presentation:slidechanged', sessions[data.presentation_id]);
-    }
-  });
-
-  socket.on('remote:pointer', function (data) {
-    console.log('remote:pointer', data);
-
-    if (verifySession(data)) {
-      socket.broadcast.emit('remote:pointer', data);
-    }
-  });
-
-  socket.on('remote:zoom', function (data) {
-    console.log('remote:zoom', data);
-
-    if (verifySession(data)) {
-      socket.broadcast.emit('remote:zoom', data);
-    }
-  });
-
-  socket.on('remote:checkClient', function (data) {
-    console.log('remote:checkClient', data);
-
-    if (verifySession(data)) {
-      socket.broadcast.emit('remote:remoteConnected', data);
-    }
-  });
-
-  socket.on('presentation:checkClient', function (data) {
-    console.log('presentation:checkClient', data);
-
-    if (verifySession(data)) {
-      socket.broadcast.emit('presentation:checkClient', data);
-    }
-  });
-
-  socket.on('presentation:slidechanged', function (data) {
-    console.log('presentation:slidechanged');
-
-    if (verifySession(data)) {
-      socket.broadcast.emit('presentation:slidechanged', data);
-      setState(data);
-    } else {
-      console.log('don\'t verified session');
-    }
-  });
-
 });
